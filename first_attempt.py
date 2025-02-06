@@ -1,11 +1,20 @@
-import csv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-from telegram.error import TimedOut, TelegramError
 import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+import os
+from google.oauth2.service_account import Credentials
+
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+drive_service = build("drive", "v3", credentials=creds)
+
+# ID папки в Google Drive
+FOLDER_ID = "1mx27Ti_bBmq5R6Q6o62Bs1yJ6Yq0RPNX"
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
@@ -19,6 +28,30 @@ else:
 client = gspread.authorize(creds)
 sheet = client.open("telegram-bot").sheet1
 
+def list_files_in_drive():
+    """Возвращает список аудиофайлов в папке Google Drive"""
+    results = drive_service.files().list(
+        q=f"'{FOLDER_ID}' in parents and mimeType='audio/mpeg'",
+        fields="files(id, name)"
+    ).execute()
+    return results.get("files", [])
+
+
+def download_file_from_drive(file_id, file_name):
+    """Скачивает аудиофайл из Google Drive"""
+    request = drive_service.files().get_media(fileId=file_id)
+    file_path = f"./downloads/{file_name}"
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "wb") as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            print(f"Загрузка {file_name}: {int(status.progress() * 100)}%")
+
+    return file_path
 
 # General survey questions
 questions = [
@@ -160,23 +193,31 @@ big_five_questions = [
 
 
 # Song data
-songs = {
-    "bass": [
-        {"title": "Bass Song 1: Bad Guy by Billie Eilish", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Billie Eilish – bad guy.mp3"},
-        {"title": "Bass Song 2: God's plan by Drake", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Drake – God's Plan.mp3"},
-        {"title": "Bass Song 3: Bangarang by Skrillex", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Skrillex, Sirah – Bangarang.mp3"}
-    ],
-    "midrange": [
-        {"title": "Midrange Song 1: Rolling in the deep by Adele", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Adele – Rolling in the Deep.mp3"},
-        {"title": "Midrange Song 2: Yellow by Coldplay", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Coldplay – Yellow.mp3"},
-        {"title": "Midrange Song 3: Shape of you by Ed Sheeran", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Ed Sheeran – Shape of You.mp3"}
-    ],
-    "treble": [
-        {"title": "Treble Song 1: Symphony No. 40 by Mozart", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Mozart – Symphony No. 40 K. 550 Symphony No. 40 in G Minor, K. 550, 1. Molto Allegro.mp3"},
-        {"title": "Treble Song 2: Love Story by Taylor Swift", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Taylor Swift – Love Story.mp3"},
-        {"title": "Treble Song 3: Billie Jean by Michael Jackson", "file": "/Users/admin/Desktop/dissertation/mastersdegree/songs/Michael Jackson – Billie Jean.mp3"}
-    ]
-}
+def list_files_in_drive():
+    """Возвращает список аудиофайлов в папке Google Drive"""
+    results = drive_service.files().list(
+        q=f"'{FOLDER_ID}' in parents and mimeType='audio/mpeg'",
+        fields="files(id, name)"
+    ).execute()
+    return results.get("files", [])
+
+def download_file_from_drive(file_id, file_name):
+    """Скачивает аудиофайл из Google Drive"""
+    file_path = f"./downloads/{file_name}"
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    request = drive_service.files().get_media(fileId=file_id)
+    with open(file_path, "wb") as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            print(f"Загрузка {file_name}: {int(status.progress() * 100)}%")
+
+    return file_path
+
+
 
 # Helper function to send messages
 async def send_message(update: Update, text: str, reply_markup=None) -> None:
@@ -391,45 +432,45 @@ async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user_data = context.user_data
     current_index = user_data.get("current_song", 0)
 
-    # Flatten the song list for ranking
-    all_songs = [song for category in songs.values() for song in category]
+    # Получаем список всех песен из Google Drive
+    all_songs = list_files_in_drive()
 
-    # Check if all songs are ranked
+    # Проверяем, все ли песни уже оценены
     if current_index >= len(all_songs):
         await update.effective_message.reply_text("Thank you for ranking the songs!")
         user_id = update.effective_user.id
         save_song_ranking(user_id, user_data)
         return
 
-    # Get the current song
+    # Берем текущую песню
     song = all_songs[current_index]
+    file_id = song["id"]
+    file_name = song["name"]
 
-    # Send the music file
+    # Скачиваем файл
+    file_path = download_file_from_drive(file_id, file_name)
+
+    # Отправляем песню в Telegram
     try:
-        await update.effective_message.reply_audio(
-            audio=open(song["file"], "rb"),
-            caption=f"Now playing: {song['title']}"
-        )
+        with open(file_path, "rb") as f:
+            await update.effective_message.reply_audio(
+                audio=f,
+                caption=f"Now playing: {file_name}"
+            )
     except Exception as e:
         await update.effective_message.reply_text(f"Error sending audio: {e}")
         return
 
-    # Determine which ranking numbers (1-9) have already been used.
-    used_ranks = set()
-    for song_item in all_songs:
-        key = f"song_rank_{song_item['title']}"
-        if key in user_data:
-            used_ranks.add(user_data[key])
+    # Определяем доступные ранги (1-9)
+    used_ranks = {user_data.get(f"song_rank_{song['name']}", None) for song in all_songs}
     available_ranks = [i for i in range(1, 10) if i not in used_ranks]
 
-    # Generate ranking options (only show available ranks)
-    options = [
-        [InlineKeyboardButton(str(i), callback_data=f"rank_{current_index}_{i}")]
-        for i in available_ranks
-    ]
+    # Генерируем кнопки для ранжирования
+    options = [[InlineKeyboardButton(str(i), callback_data=f"rank_{current_index}_{i}")] for i in available_ranks]
     reply_markup = InlineKeyboardMarkup(options)
+
     await update.effective_message.reply_text(
-        f"Please rank the song '{song['title']}' from 1 (most liked) to 9 (least liked):",
+        f"Please rank the song '{file_name}' from 1 (most liked) to 9 (least liked):",
         reply_markup=reply_markup
     )
 
