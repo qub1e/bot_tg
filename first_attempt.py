@@ -3,6 +3,22 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import TimedOut, TelegramError
 import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import json
+
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+
+if os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
+    creds_json = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
+else:
+    # Локально используем файл
+    creds = ServiceAccountCredentials.from_json_keyfile_name("valiant-metric-385117-91f6496009ee.json", scope)
+
+client = gspread.authorize(creds)
+sheet = client.open("telegram-bot").sheet1
+
 
 # General survey questions
 questions = [
@@ -195,8 +211,8 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if current_index >= len(questions):
         await update.effective_message.reply_text(
-            "General survey completed! Now let's move on to the Big Five Personality Test."
-            if lang == "en" else "Опрос завершен! Теперь переходим к тесту личности Big Five."
+            "General survey completed! Now let's move on to the Big Five Personality Test. Here are the possible options: 1 - disagree, 2 - slightly disagree, 3 - neutral, 4 - slightly agree, 5 - agree"
+            if lang == "en" else "Опрос завершен! Теперь переходим к тесту личности Большой Пятерки. Вот возможные ответы: 1 - не согласен, 2 - частично не согласен, 3 - нейтрально, 4 - частично согласен, 5 - согласен"
         )
         user_data["current_question"] = 0  # Reset index for Big Five questions
         await big_five_test(update, context)  # Start Big Five test
@@ -345,7 +361,7 @@ async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         # Save results and start song recommendations
         user_id = update.effective_user.id
-        save_to_csv(user_id, user_data, scores)
+        save_to_google_sheets(user_id, user_data, scores)
 
         await update.effective_message.reply_text("Now let's move to the song ranking phase." if lang == "en" else "Теперь перейдем к ранжированию песен.")
         await send_song_ranking(update, context)
@@ -358,11 +374,11 @@ async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["big_five_question"] = current_index + 1
 
     options = [
-        [InlineKeyboardButton("1 (Disagree)", callback_data=f"big5_{current_index}_1")],
-        [InlineKeyboardButton("2 (Slightly Disagree)", callback_data=f"big5_{current_index}_2")],
-        [InlineKeyboardButton("3 (Neutral)", callback_data=f"big5_{current_index}_3")],
-        [InlineKeyboardButton("4 (Slightly Agree)", callback_data=f"big5_{current_index}_4")],
-        [InlineKeyboardButton("5 (Agree)", callback_data=f"big5_{current_index}_5")]
+        [InlineKeyboardButton("1", callback_data=f"big5_{current_index}_1")],
+        [InlineKeyboardButton("2", callback_data=f"big5_{current_index}_2")],
+        [InlineKeyboardButton("3", callback_data=f"big5_{current_index}_3")],
+        [InlineKeyboardButton("4", callback_data=f"big5_{current_index}_4")],
+        [InlineKeyboardButton("5", callback_data=f"big5_{current_index}_5")]
     ]
 
     reply_markup = InlineKeyboardMarkup(options)
@@ -420,21 +436,14 @@ async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 def save_song_ranking(user_id, user_data):
-    file_path = "song_rankings.csv"
-    file_exists = os.path.isfile(file_path)
+    # Заголовки (User ID + названия песен)
+    headers = ["User ID"] + [f"Rank for {song['title']}" for category in songs.values() for song in category]
 
-    # Prepare the header
-    header = ["User ID"] + [f"Rank for {song['title']}" for category in songs.values() for song in category]
+    # Достаем ранги песен из user_data
+    song_ranks = [user_data.get(f"song_rank_{song['title']}", "N/A") for category in songs.values() for song in category]
 
-    # Prepare the data row
-    row = [user_id] + [user_data.get(f"song_rank_{song['title']}", "N/A") for category in songs.values() for song in category]
-
-    # Write to CSV
-    with open(file_path, "a", newline="") as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(header)
-        writer.writerow(row)
+    # Итоговая строка данных (User ID + ранги)
+    row = [user_id] + song_ranks
 
 
 async def handle_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -452,68 +461,76 @@ async def handle_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer("Invalid input. Please try again.")
         return
 
-    # Get list of songs
+    # Получаем список всех песен
     all_songs = [song for category in songs.values() for song in category]
 
-    # Ensure valid index
+    # Проверяем, что индекс песни корректен
     if song_index >= len(all_songs):
         await query.answer("Invalid song selection.")
         return
 
     song_title = all_songs[song_index]["title"]
 
-    # Store the ranking (each rank can be used only once)
-    user_data[f"song_rank_{song_title}"] = rank
+    # **СОХРАНЯЕМ РАНГ ПРАВИЛЬНО**
+    user_data[f"song_rank_{song_title}"] = rank  # Исправленный ключ
 
-    # Move to the next song
+    # Переход к следующей песне
     user_data["current_song"] = song_index + 1
 
     await query.answer(f"Ranked '{song_title}' as {rank}.")
     await query.edit_message_text(f"You ranked '{song_title}' as {rank}.")
 
-    # Send next song ranking
+    # **ВЫЗОВ СОХРАНЕНИЯ В GOOGLE SHEETS**
+    if user_data["current_song"] >= len(all_songs):
+        user_id = update.effective_user.id
+        save_to_google_sheets(user_id, user_data, calculate_big_five_scores(user_data))
+
+    # Отправляем следующую песню для ранжирования
     await send_song_ranking(update, context)
 
 
 
 
-# Save responses to CSV
-import os
 
-def save_to_csv(user_id, user_data, big_five_scores):
-    file_path = "survey_responses.csv"
-    file_exists = os.path.isfile(file_path)
-
-    # Извлекаем ответы на общий опрос
-    general_questions = [
-        "What is your gender?", "What is your age group?", "What is your highest level of education?",
-        "Which region do you live in?", "Do you live in an urban or rural area?",
-        "What is your employment status?", "What is your monthly income?",
-        "Do you enjoy music with strong bass frequencies?", "Do you prefer vocals or instrumental music?",
-        "What time of day do you usually listen to music?", "What is the most important factor in your music preference?"
+def save_to_google_sheets(user_id, user_data, big_five_scores):
+    # Основные заголовки
+    base_headers = [
+        "User ID", "Gender", "Age Group", "Education", "Region", "Urban/Rural",
+        "Employment", "Income", "Bass Preference", "Vocals/Instrumental", "Listening Time",
+        "Emotion Effect", "Recommendation Factors", "Listening Style", "Mood-based Preference",
+        "Nostalgia vs. New Experiences", "Primary Reason", "Extraversion", "Agreeableness",
+        "Conscientiousness", "Neuroticism", "Openness"
     ]
-    survey_answers = [user_data.get(f"question_{i}", "N/A") for i in range(len(general_questions))]
 
-    # Извлекаем оценки Big Five
-    big_five_traits = ["Extraversion", "Agreeableness", "Conscientiousness", "Neuroticism", "Openness"]
-    big_five_results = [big_five_scores.get(trait, "N/A") for trait in big_five_traits]
-
-    # Извлекаем ранжирование песен
+    # **ПРАВИЛЬНО ФОРМИРУЕМ НАЗВАНИЯ ПЕСЕН**
     song_titles = [song["title"] for category in songs.values() for song in category]
+    song_headers = [f"Rank for {song}" for song in song_titles]  # Заголовки в таблице
+
+    # Полный список заголовков
+    full_headers = base_headers + song_headers
+
+    # Собираем ответы на вопросы анкеты
+    survey_answers = [user_data.get(f"question_{i}", "N/A") for i in range(len(base_headers) - 6)]
+    big_five_results = [big_five_scores.get(trait, "N/A") for trait in ["Extraversion", "Agreeableness", "Conscientiousness", "Neuroticism", "Openness"]]
+
+    # **Используем правильные ключи для рангов песен**
     song_ranks = [user_data.get(f"song_rank_{song}", "N/A") for song in song_titles]
 
-    # Формируем заголовки
-    header = ["User ID"] + general_questions + big_five_traits + song_titles
-
-    # Формируем строку данных
+    # Полная строка данных
     row = [user_id] + survey_answers + big_five_results + song_ranks
 
-    # Записываем данные в CSV
-    with open(file_path, "a", newline="") as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(header)  # Записываем заголовок, если файл создается впервые
-        writer.writerow(row)  # Записываем данные пользователя
+    try:
+        # Проверяем заголовки в Google Sheets
+        sheet_data = sheet.get_all_values()
+        if not sheet_data or sheet_data[0] != full_headers:
+            sheet.clear()
+            sheet.append_row(full_headers, value_input_option="USER_ENTERED")
+
+        # Добавляем строку данных
+        sheet.append_row(row, value_input_option="USER_ENTERED")
+        print(f"✅ Data for user {user_id} successfully saved to Google Sheets.")
+    except Exception as e:
+        print(f"❌ Error saving data to Google Sheets: {e}")
 
 
 def main():
@@ -531,3 +548,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
