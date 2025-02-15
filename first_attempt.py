@@ -10,7 +10,7 @@ import os
 from google.oauth2.service_account import Credentials
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+# creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 drive_service = build("drive", "v3", credentials=creds)
 
 # ID папки в Google Drive
