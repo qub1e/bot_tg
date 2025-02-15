@@ -19,11 +19,12 @@ FOLDER_ID = "1mx27Ti_bBmq5R6Q6o62Bs1yJ6Yq0RPNX"
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
 if os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
+    print("✅ Переменная окружения найдена!")
     creds_json = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
+    creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
 else:
-    # Локально используем файл
-    creds = ServiceAccountCredentials.from_json_keyfile_name("valiant-metric-385117-91f6496009ee.json", scope)
+    print("❌ Переменная GOOGLE_SHEETS_CREDENTIALS не найдена! Проверь настройки на Render.")
+    creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 
 client = gspread.authorize(creds)
 sheet = client.open("telegram-bot").sheet1
