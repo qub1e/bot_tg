@@ -36,7 +36,6 @@ def list_files_in_drive():
     ).execute()
     return results.get("files", [])
 
-
 def download_file_from_drive(file_id, file_name):
     """Скачивает аудиофайл из Google Drive"""
     request = drive_service.files().get_media(fileId=file_id)
@@ -53,7 +52,6 @@ def download_file_from_drive(file_id, file_name):
 
     return file_path
 
-# General survey questions
 questions = [
     {"question": {"en": "What is your gender?", "ru": "Какой у вас пол?"},
      "type": "closed",
@@ -133,11 +131,42 @@ questions = [
     {"question": {"en": "What is your primary reason for listening to music?", "ru": "Какова ваша основная причина для прослушивания музыки?"},
      "type": "closed",
      "options": {"en": ["Entertainment", "Relaxation", "Focus", "Emotional connection", "Background noise"],
-                 "ru": ["Развлечение", "Расслабление", "Концентрация", "Эмоциональная связь", "Фоновый шум"]}}
+                 "ru": ["Развлечение", "Расслабление", "Концентрация", "Эмоциональная связь", "Фоновый шум"]}},
+
+    {"question": {"en": "What is the most important factor in your music preference?",
+                  "ru": "Какой фактор наиболее важен для ваших музыкальных предпочтений?"},
+     "type": "closed",
+     "options": {"en": ["Genre", "Mood", "Lyrics", "Beats", "Other"],
+                 "ru": ["Жанр", "Настроение", "Тексты", "Биты", "Другое"]}},
+
+    {"question": {"en": "Which platform do you primarily use to listen to music?",
+                  "ru": "Какую платформу вы в основном используете для прослушивания музыки?"},
+     "type": "closed",
+     "options": {"en": ["Spotify", "Apple Music", "YouTube", "Yandex Music", "Other"],
+                 "ru": ["Spotify", "Apple Music", "YouTube", "Яндекс Музыка", "Другое"]}},
+
+    {"question": {"en": "What device do you use most often for listening to music?",
+                  "ru": "Какое устройство вы чаще всего используете для прослушивания музыки?"},
+     "type": "closed",
+     "options": {"en": ["Phone", "Laptop", "Smart Speakers", "Earphones", "Other"],
+                 "ru": ["Телефон", "Ноутбук", "Умные колонки", "Наушники", "Другое"]}},
+
+    {"question": {"en": "What is your top favorite music genre?", "ru": "Какой ваш любимый музыкальный жанр?"},
+     "type": "closed",
+     "options": {
+         "en": ["Pop", "Rock", "Jazz", "Hip-Hop", "Classical", "EDM", "Country", "Reggae", "Blues", "Metal", "Folk",
+                "Other"],
+         "ru": ["Поп", "Рок", "Джаз", "Хип-хоп", "Классика", "Электронная музыка", "Кантри", "Регги", "Блюз", "Метал",
+                "Фолк", "Другое"]}},
+
+    {"question": {
+        "en": "Do you prefer music with high energy (fast, upbeat), low energy (slow, calming), or mid-range?",
+        "ru": "Вы предпочитаете музыку с высокой энергией (быструю, бодрящую), низкой энергией (медленную, успокаивающую) или среднюю?"},
+     "type": "closed",
+     "options": {"en": ["High energy", "Low energy", "Mid-range"],
+                 "ru": ["Высокая энергия", "Низкая энергия", "Средняя"]}}
 ]
 
-
-# Big Five Personality Test questions
 big_five_questions = [
     {"en": "Am the life of the party.", "ru": "Я душа компании."},
     {"en": "Feel little concern for others.", "ru": "Меня мало волнуют проблемы других."},
@@ -191,8 +220,6 @@ big_five_questions = [
     {"en": "Am full of ideas.", "ru": "У меня много идей."}
 ]
 
-
-# Song data
 def list_files_in_drive():
     """Возвращает список аудиофайлов в папке Google Drive"""
     results = drive_service.files().list(
@@ -217,34 +244,69 @@ def download_file_from_drive(file_id, file_name):
 
     return file_path
 
-
-
-# Helper function to send messages
 async def send_message(update: Update, text: str, reply_markup=None) -> None:
     if update.message:
         await update.message.reply_text(text, reply_markup=reply_markup)
     elif update.callback_query:
         await update.callback_query.message.reply_text(text, reply_markup=reply_markup)
 
-# Start command with introduction
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    welcome_message = (
+        "\U0001F3B5 Welcome!\n\n"
+        "This bot is designed to study the connection between personality and musical preferences. Survey completion time: ~5-7 minutes.\n\n"
+        "Please choose a languane.\n\n"
+        "\U0001F3B5 Добро пожаловать!\n\n"
+        "Этот бот создан для исследования связи между личностью и музыкальными предпочтениями. Время прохождения: ~5-7 минут.\n\n"
+        "Пожалуйста выберите язык."
+    )
+
     keyboard = [
         [InlineKeyboardButton("English", callback_data="lang_en")],
         [InlineKeyboardButton("Русский", callback_data="lang_ru")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Please select your language / Пожалуйста, выберите язык:", reply_markup=reply_markup)
+    await update.message.reply_text(welcome_message, reply_markup=reply_markup)
+
 
 async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     lang = query.data.split("_")[1]  # Получаем 'en' или 'ru'
     context.user_data["lang"] = lang
     await query.answer()
-    await query.message.reply_text("Language set to English." if lang == "en" else "Язык установлен на русский.")
+
+    if lang == "en":
+        explanation = (
+            "You will go through several stages:\n\n"
+            "1️⃣ Survey – short questions about your musical habits and preferences.\n\n"
+            "2️⃣ Big Five Test – a scientifically validated psychological test that evaluates your personality based on five traits:\n\n"
+            "   • Extraversion (sociability, energy)\n"
+            "   • Agreeableness (friendliness, willingness to help)\n"
+            "   • Conscientiousness (organization, self-discipline)\n"
+            "   • Neuroticism (tendency to stress)\n"
+            "   • Openness to Experience (creativity and love for new ideas)\n\n"
+            "Your results will help us understand how personality influences musical preferences. The test does not rate you as “good” or “bad”, but simply shows your inclinations.\n\n"
+            "3️⃣ Song Ranking – you will be asked to rank several musical tracks from 1 (liked the most) to 9 (liked the least).\n\n"
+            "\U0001F4CC All responses are anonymous and will be used for research purposes only."
+        )
+    else:
+        explanation = (
+            "Вам предстоит пройти несколько этапов:\n\n"
+            "1️⃣ Анкетирование – короткие вопросы о ваших музыкальных привычках и предпочтениях.\n\n"
+            "2️⃣ Тест Big Five – научно обоснованный психологический тест, который оценивает вашу личность по пяти основным чертам:\n\n"
+            "   • Экстраверсия (общительность, энергичность)\n"
+            "   • Доброжелательность (дружелюбие, готовность помочь)\n"
+            "   • Добросовестность (организованность, самодисциплина)\n"
+            "   • Нейротизм (склонность к стрессу)\n"
+            "   • Открытость к новому опыту (любовь к творчеству и новым идеям)\n\n"
+            "Ваши результаты помогут понять, как личность влияет на музыкальные предпочтения. Тест не оценивает вас “хорошим” или “плохим”, а просто показывает ваши склонности.\n\n"
+            "3️⃣ Ранжирование песен – вам будет предложено оценить несколько музыкальных композиций по шкале от 1 (понравилась больше всего) до 9 (понравилась меньше всего).\n\n"
+            "\U0001F4CC Все ответы остаются анонимными и будут использованы только в исследовательских целях."
+        )
+
+    await query.message.reply_text(explanation)
     await next_question(update, context)
 
-
-# Handle general survey questions
 async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = context.user_data
     lang = user_data.get("lang", "en")  # Default to English
@@ -252,8 +314,19 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if current_index >= len(questions):
         await update.effective_message.reply_text(
-            "General survey completed! Now let's move on to the Big Five Personality Test. Here are the possible options: 1 - disagree, 2 - slightly disagree, 3 - neutral, 4 - slightly agree, 5 - agree"
-            if lang == "en" else "Опрос завершен! Теперь переходим к тесту личности Большой Пятерки. Вот возможные ответы: 1 - не согласен, 2 - частично не согласен, 3 - нейтрально, 4 - частично согласен, 5 - согласен"
+            "General survey completed! Now let's move on to the Big Five Personality Test. Here are the possible options:\n\n"
+            "1 - disagree\n\n"
+            "2 - slightly disagree\n\n"
+            "3 - neutral,\n\n"
+            "4 - slightly agree\n\n"
+            "5 - agree"
+            if lang == "en" else
+            "Опрос завершен! Теперь переходим к тесту личности Большой Пятерки. Вот возможные ответы:\n\n"
+            "1 - не согласен\n"
+            "2 - частично не согласен\n"
+            "3 - нейтрально\n"
+            "4 - частично согласен\n"
+            "5 - согласен"
         )
         user_data["current_question"] = 0  # Reset index for Big Five questions
         await big_five_test(update, context)  # Start Big Five test
@@ -274,44 +347,50 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["current_question"] = current_index + 1
     await update.effective_message.reply_text(question_text, reply_markup=reply_markup)
 
-
-
-
-
-# Handle responses
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     user_data = context.user_data
+    lang = user_data.get("lang", "en")  # Получаем язык пользователя
 
-    # Handle Big Five Responses
+    # Обработка ответов Big Five
     if query.data.startswith("big5_"):
-        _, question_index, score = query.data.split("_")  # Extract parts
-        user_data[f"big_five_question_{question_index}"] = int(score)  # Store score
-        await query.edit_message_text(f"Thank you for your response: {score}")
-        await big_five_test(update, context)  # Move to the next question
+        _, question_index, score = query.data.split("_")  # Извлекаем данные
+        user_data[f"big_five_question_{question_index}"] = int(score)  # Сохраняем ответ
+
+        response_message = (
+            f"Thank you for your response: {score}" if lang == "en" else f"Спасибо за ваш ответ: {score}"
+        )
+
+        await query.edit_message_text(response_message)
+        await big_five_test(update, context)  # Переход к следующему вопросу
         return
 
-    # Handle General Survey Responses
+    # Обработка ответов общего опроса
     if query.data.startswith("q_"):
-        option_index = query.data[2:]  # Extract numeric index
+        option_index = query.data[2:]  # Извлекаем числовой индекс
         selected_option = user_data["current_options"].get(option_index, "Unknown")
-        user_data[f"question_{user_data['current_question'] - 1}"] = selected_option  # Store full answer
+        user_data[f"question_{user_data['current_question'] - 1}"] = selected_option  # Сохраняем ответ
+
+        response_message = (
+            f"Thank you for your response: {selected_option}"
+            if lang == "en"
+            else f"Спасибо за ваш ответ: {selected_option}"
+        )
+
         await query.answer()
-        await query.edit_message_text(f"Thank you for your response: {selected_option}")
-        await next_question(update, context)  # Proceed to the next question
+        await query.edit_message_text(response_message)
+        await next_question(update, context)  # Переход к следующему вопросу
         return
 
-    # If none of the expected prefixes, reply with an error.
-    await query.answer("Unexpected input. Please try again.")
+    # Обработка неожиданных данных
+    error_message = (
+        "Unexpected input. Please try again." if lang == "en" else "Неожиданный ввод. Попробуйте снова."
+    )
+    await query.answer(error_message)
 
-
-
-
-
-# Calculate Big Five scores
 def calculate_big_five_scores(user_data):
     scores = {
-        "Extraversion": 20
+        "Extraversion/Экстраверсия": 20
             + int(user_data.get("big_five_question_0", 0))
             - int(user_data.get("big_five_question_5", 0))
             + int(user_data.get("big_five_question_10", 0))
@@ -322,7 +401,7 @@ def calculate_big_five_scores(user_data):
             - int(user_data.get("big_five_question_35", 0))
             + int(user_data.get("big_five_question_40", 0))
             - int(user_data.get("big_five_question_45", 0)),
-        "Agreeableness": 14
+        "Agreeableness/Доброжелательность": 14
             - int(user_data.get("big_five_question_1", 0))
             + int(user_data.get("big_five_question_6", 0))
             - int(user_data.get("big_five_question_11", 0))
@@ -333,7 +412,7 @@ def calculate_big_five_scores(user_data):
             + int(user_data.get("big_five_question_36", 0))
             + int(user_data.get("big_five_question_41", 0))
             + int(user_data.get("big_five_question_46", 0)),
-        "Conscientiousness": 14
+        "Conscientiousness/Добросовестность": 14
             + int(user_data.get("big_five_question_2", 0))
             - int(user_data.get("big_five_question_7", 0))
             + int(user_data.get("big_five_question_12", 0))
@@ -344,7 +423,7 @@ def calculate_big_five_scores(user_data):
             - int(user_data.get("big_five_question_37", 0))
             + int(user_data.get("big_five_question_42", 0))
             + int(user_data.get("big_five_question_47", 0)),
-        "Neuroticism": 38
+        "Neuroticism/Нейротизм": 38
             - int(user_data.get("big_five_question_3", 0))
             + int(user_data.get("big_five_question_8", 0))
             - int(user_data.get("big_five_question_13", 0))
@@ -355,7 +434,7 @@ def calculate_big_five_scores(user_data):
             - int(user_data.get("big_five_question_38", 0))
             - int(user_data.get("big_five_question_43", 0))
             - int(user_data.get("big_five_question_48", 0)),
-        "Openness": 8
+        "Openness/Открытость": 8
             + int(user_data.get("big_five_question_4", 0))
             - int(user_data.get("big_five_question_9", 0))
             + int(user_data.get("big_five_question_14", 0))
@@ -370,25 +449,21 @@ def calculate_big_five_scores(user_data):
 
     return scores
 
-# Handle Big Five Personality Test
 async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = context.user_data
     lang = user_data.get("lang", "en")  # Default to English
 
-    # Prevent duplicate calls
     if user_data.get("big_five_in_progress", False):
         return
-    user_data["big_five_in_progress"] = True  # Mark test as in progress
+    user_data["big_five_in_progress"] = True
 
     current_index = user_data.get("big_five_question", 0)
 
-    # If all Big Five questions are completed
     if current_index >= len(big_five_questions):
         await update.effective_message.reply_text(
             "Thank you for completing the Big Five Personality Test!" if lang == "en" else "Спасибо за прохождение теста Big Five!"
         )
 
-        # Calculate and display scores
         scores = calculate_big_five_scores(user_data)
         results_message = "Here are your Big Five Personality Test results:\n\n" if lang == "en" else "Вот ваши результаты теста Big Five:\n\n"
         for trait, score in scores.items():
@@ -396,22 +471,15 @@ async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         await update.effective_message.reply_text(results_message)
 
-        # Mark Big Five Test as completed
-        user_data["big_five_completed"] = True
-        user_data["big_five_in_progress"] = False  # Reset flag
+        # Save full survey and Big Five data immediately
 
-        # Save results and start song recommendations
-        user_id = update.effective_user.id
-        save_to_google_sheets(user_id, user_data, scores)
-
-        await update.effective_message.reply_text("Now let's move to the song ranking phase." if lang == "en" else "Теперь перейдем к ранжированию песен.")
-        await send_song_ranking(update, context)
+        await update.effective_message.reply_text(
+            "Now let's move to the song ranking phase." if lang == "en" else "Теперь перейдем к ранжированию песен."
+        )
+        await send_song_ranking(update, context)  # Proceed to song ranking
         return
 
-    # Extract the correct language-specific question
     question_text = big_five_questions[current_index][lang]
-
-    # Store question index
     user_data["big_five_question"] = current_index + 1
 
     options = [
@@ -425,11 +493,11 @@ async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     reply_markup = InlineKeyboardMarkup(options)
     await update.effective_message.reply_text(question_text, reply_markup=reply_markup)
 
-    user_data["big_five_in_progress"] = False  # Reset flag after question is sent
-
+    user_data["big_five_in_progress"] = False
 
 async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = context.user_data
+    lang = user_data.get("lang", "en")  # Получаем язык пользователя
     current_index = user_data.get("current_song", 0)
 
     # Получаем список всех песен из Google Drive
@@ -437,7 +505,10 @@ async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     # Проверяем, все ли песни уже оценены
     if current_index >= len(all_songs):
-        await update.effective_message.reply_text("Thank you for ranking the songs!")
+        final_message = (
+            "Thank you for ranking the songs!" if lang == "en" else "Спасибо за ранжирование песен!"
+        )
+        await update.effective_message.reply_text(final_message)
         user_id = update.effective_user.id
         save_song_ranking(user_id, user_data)
         return
@@ -455,10 +526,13 @@ async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         with open(file_path, "rb") as f:
             await update.effective_message.reply_audio(
                 audio=f,
-                caption=f"Now playing: {file_name}"
+                caption=f"🎵 Now playing: {file_name}" if lang == "en" else f"🎵 Сейчас играет: {file_name}"
             )
     except Exception as e:
-        await update.effective_message.reply_text(f"Error sending audio: {e}")
+        error_message = (
+            f"Error sending audio: {e}" if lang == "en" else f"Ошибка отправки аудио: {e}"
+        )
+        await update.effective_message.reply_text(error_message)
         return
 
     # Определяем доступные ранги (1-9)
@@ -469,23 +543,40 @@ async def send_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     options = [[InlineKeyboardButton(str(i), callback_data=f"rank_{current_index}_{i}")] for i in available_ranks]
     reply_markup = InlineKeyboardMarkup(options)
 
-    await update.effective_message.reply_text(
-        f"Please rank the song '{file_name}' from 1 (most liked) to 9 (least liked):",
-        reply_markup=reply_markup
+    # Сообщение с запросом оценки песни
+    message_text = (
+        f"Please rank the song '{file_name}' from 1 (most liked) to 9 (least liked):"
+        if lang == "en"
+        else f"Пожалуйста, оцените песню '{file_name}' по шкале от 1 (понравилась больше всего) до 9 (понравилась меньше всего):"
     )
 
-
+    await update.effective_message.reply_text(message_text, reply_markup=reply_markup)
 
 def save_song_ranking(user_id, user_data):
+    # Получаем актуальный список песен из Google Drive
+    all_songs = list_files_in_drive()
+
     # Заголовки (User ID + названия песен)
-    headers = ["User ID"] + [f"Rank for {song['title']}" for category in songs.values() for song in category]
+    headers = ["User ID"] + [f"Rank for {song['name']}" for song in all_songs]
 
     # Достаем ранги песен из user_data
-    song_ranks = [user_data.get(f"song_rank_{song['title']}", "N/A") for category in songs.values() for song in category]
+    song_ranks = [user_data.get(f"song_rank_{song['name']}", "N/A") for song in all_songs]
 
     # Итоговая строка данных (User ID + ранги)
     row = [user_id] + song_ranks
 
+    try:
+        # Проверяем заголовки в Google Sheets
+        sheet_data = sheet.get_all_values()
+        if not sheet_data or sheet_data[0] != headers:
+            sheet.clear()
+            sheet.append_row(headers, value_input_option="USER_ENTERED")
+
+        # Добавляем строку данных
+        sheet.append_row(row, value_input_option="USER_ENTERED")
+        print(f"✅ Song rankings for user {user_id} successfully saved to Google Sheets.")
+    except Exception as e:
+        print(f"❌ Error saving song rankings to Google Sheets: {e}")
 
 async def handle_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -503,62 +594,75 @@ async def handle_song_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     # Получаем список всех песен
-    all_songs = [song for category in songs.values() for song in category]
+    all_songs = list_files_in_drive()
 
     # Проверяем, что индекс песни корректен
     if song_index >= len(all_songs):
         await query.answer("Invalid song selection.")
         return
 
-    song_title = all_songs[song_index]["title"]
+    song_title = all_songs[song_index]["name"]
 
-    # **СОХРАНЯЕМ РАНГ ПРАВИЛЬНО**
-    user_data[f"song_rank_{song_title}"] = rank  # Исправленный ключ
+    # **СОХРАНЯЕМ РАНГ**
+    user_data[f"song_rank_{song_title}"] = rank
 
-    # Переход к следующей песне
+    # **Переход к следующей песне**
     user_data["current_song"] = song_index + 1
 
     await query.answer(f"Ranked '{song_title}' as {rank}.")
-    await query.edit_message_text(f"You ranked '{song_title}' as {rank}.")
+    lang = user_data.get("lang", "en")  # Получаем язык пользователя
 
-    # **ВЫЗОВ СОХРАНЕНИЯ В GOOGLE SHEETS**
+    rank_message = (
+        f"You ranked '{song_title}' as {rank}."
+        if lang == "en"
+        else f"Вы оценили '{song_title}' как {rank}."
+    )
+
+    await query.edit_message_text(rank_message)
+
+    # **🔥 FIXED: СОХРАНЯЕМ ДАННЫЕ ТОЛЬКО ПОСЛЕ ПОСЛЕДНЕЙ ПЕСНИ 🔥**
     if user_data["current_song"] >= len(all_songs):
         user_id = update.effective_user.id
-        save_to_google_sheets(user_id, user_data, calculate_big_five_scores(user_data))
+        big_five_scores = calculate_big_five_scores(user_data)
+        save_to_google_sheets(user_id, user_data, big_five_scores)
+        await update.effective_message.reply_text("✅ Thank you for completing survey, have a good day!\n\n"
+                                                  "✅ Спасибо за прохождение теста, всего хорошего!!")
 
-    # Отправляем следующую песню для ранжирования
-    await send_song_ranking(update, context)
-
-
-
-
+    else:
+        await send_song_ranking(update, context)  # Продолжаем ранжирование
 
 def save_to_google_sheets(user_id, user_data, big_five_scores):
-    # Основные заголовки
+    # Заголовки для анкеты
     base_headers = [
         "User ID", "Gender", "Age Group", "Education", "Region", "Urban/Rural",
         "Employment", "Income", "Bass Preference", "Vocals/Instrumental", "Listening Time",
         "Emotion Effect", "Recommendation Factors", "Listening Style", "Mood-based Preference",
-        "Nostalgia vs. New Experiences", "Primary Reason", "Extraversion", "Agreeableness",
-        "Conscientiousness", "Neuroticism", "Openness"
+        "Nostalgia vs. New Experiences", "Primary Reason", "Important factor", "Platform", "Device", "Genre", "Energy"
     ]
 
-    # **ПРАВИЛЬНО ФОРМИРУЕМ НАЗВАНИЯ ПЕСЕН**
-    song_titles = [song["title"] for category in songs.values() for song in category]
-    song_headers = [f"Rank for {song}" for song in song_titles]  # Заголовки в таблице
+    # Заголовки для Big Five
+    big_five_headers = ["Extraversion", "Agreeableness", "Conscientiousness", "Neuroticism", "Openness"]
+
+    # Получаем список песен
+    all_songs = list_files_in_drive()
+    song_headers = [f"Rank for {song['name']}" for song in all_songs]
 
     # Полный список заголовков
-    full_headers = base_headers + song_headers
+    full_headers = base_headers + big_five_headers + song_headers
 
-    # Собираем ответы на вопросы анкеты
-    survey_answers = [user_data.get(f"question_{i}", "N/A") for i in range(len(base_headers) - 6)]
-    big_five_results = [big_five_scores.get(trait, "N/A") for trait in ["Extraversion", "Agreeableness", "Conscientiousness", "Neuroticism", "Openness"]]
+    # **Собираем ответы на вопросы анкеты**
+    survey_answers = [user_data.get(f"question_{i}", "N/A") for i in range(len(questions))]
 
-    # **Используем правильные ключи для рангов песен**
-    song_ranks = [user_data.get(f"song_rank_{song}", "N/A") for song in song_titles]
+    # **Собираем результаты Big Five**
+    big_five_results = [big_five_scores.get(trait, "N/A") for trait in big_five_headers]
+
+    # **Собираем ранги песен**
+    song_ranks = [user_data.get(f"song_rank_{song['name']}", "N/A") for song in all_songs]
 
     # Полная строка данных
     row = [user_id] + survey_answers + big_five_results + song_ranks
+
+    print(f"🔹 Final Save to Google Sheets: {row}")  # Для отладки
 
     try:
         # Проверяем заголовки в Google Sheets
@@ -569,10 +673,9 @@ def save_to_google_sheets(user_id, user_data, big_five_scores):
 
         # Добавляем строку данных
         sheet.append_row(row, value_input_option="USER_ENTERED")
-        print(f"✅ Data for user {user_id} successfully saved to Google Sheets.")
+        print(f"✅ Final data for user {user_id} successfully saved to Google Sheets.")
     except Exception as e:
         print(f"❌ Error saving data to Google Sheets: {e}")
-
 
 def main():
     app = Application.builder().token("8193853273:AAHV1zxcuPB3YQuzIwr9nJMRrnkVuMx0ww4").build()
