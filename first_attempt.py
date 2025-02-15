@@ -9,25 +9,21 @@ from googleapiclient.http import MediaIoBaseDownload
 import os
 from google.oauth2.service_account import Credentials
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+SCOPES = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
+creds_json = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
+
+# Создаем credentials объект
+creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
+
+# Google Drive API
 drive_service = build("drive", "v3", credentials=creds)
 
-# ID папки в Google Drive
-FOLDER_ID = "1mx27Ti_bBmq5R6Q6o62Bs1yJ6Yq0RPNX"
-
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-if os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
-    print("✅ Переменная окружения найдена!")
-    creds_json = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
-    creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
-else:
-    print("❌ Переменная GOOGLE_SHEETS_CREDENTIALS не найдена! Проверь настройки на Render.")
-    creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
-
+# Google Sheets API
 client = gspread.authorize(creds)
-sheet = client.open("telegram-bot").sheet1
+sheet = client.open_by_key(os.getenv("SPREADSHEET_ID")).sheet1
+
+# ID папки Google Drive
+FOLDER_ID = os.getenv("FOLDER_ID")
 
 def list_files_in_drive():
     """Возвращает список аудиофайлов в папке Google Drive"""
