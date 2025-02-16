@@ -365,7 +365,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if query.data.startswith("big5_"):
         _, question_index, score = query.data.split("_")  # Извлекаем данные
         user_data[f"big_five_question_{question_index}"] = int(score)  # Сохраняем ответ
-
+        print(f"✅ Big Five Response Recorded: Question {question_index} → Score {score}")
         response_message = (
             f"Thank you for your response: {score}" if lang == "en" else f"Спасибо за ваш ответ: {score}"
         )
@@ -398,6 +398,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await query.answer(error_message)
 
 def calculate_big_five_scores(user_data):
+    print(f"📊 Calculating Big Five Scores... Data Received: {user_data}")
     scores = {
         "Extraversion/Экстраверсия": 20
             + int(user_data.get("big_five_question_0", "0") or 0)
@@ -459,7 +460,7 @@ def calculate_big_five_scores(user_data):
             + int(user_data.get("big_five_question_44", "0") or 0)
             + int(user_data.get("big_five_question_49", "0") or 0),
     }
-
+    print(f"✅ Big Five Scores Calculated: {scores}")
     return scores
 
 async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -478,6 +479,8 @@ async def big_five_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
 
         scores = calculate_big_five_scores(user_data)
+        print(f"✅ Saving Big Five Scores to Google Sheets: {scores}")  # Лог
+
         results_message = "Here are your Big Five Personality Test results:\n\n" if lang == "en" else "Вот ваши результаты теста Big Five:\n\n"
         for trait, score in scores.items():
             results_message += f"{trait}: {score}\n"
