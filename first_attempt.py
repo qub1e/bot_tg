@@ -12,10 +12,8 @@ from google.oauth2.service_account import Credentials
 SCOPES = ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
 creds_json = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
 
-# Создаем credentials объект
 creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
 
-# Google Drive API
 drive_service = build("drive", "v3", credentials=creds)
 
 # Google Sheets API
@@ -397,69 +395,76 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
     await query.answer(error_message)
 
+
 def calculate_big_five_scores(user_data):
     print(f"📊 Calculating Big Five Scores... Data Received: {user_data}")
+
+    def safe_int(value):
+        """Преобразует значение в int, если оно существует, иначе возвращает 0"""
+        return int(value) if value is not None and value != "N/A" else 0
+
     scores = {
-        "Extraversion/Экстраверсия": 20
-            + int(user_data.get("big_five_question_0", "0") or 0)
-            - int(user_data.get("big_five_question_5", "0") or 0)
-            + int(user_data.get("big_five_question_10", "0") or 0)
-            - int(user_data.get("big_five_question_15", "0") or 0)
-            + int(user_data.get("big_five_question_20", "0") or 0)
-            - int(user_data.get("big_five_question_25", "0") or 0)
-            + int(user_data.get("big_five_question_30", "0") or 0)
-            - int(user_data.get("big_five_question_35", "0") or 0)
-            + int(user_data.get("big_five_question_40", "0") or 0)
-            - int(user_data.get("big_five_question_45", "0") or 0),
+        "Extraversion": 20
+                        + safe_int(user_data.get("big_five_question_0"))
+                        - safe_int(user_data.get("big_five_question_5"))
+                        + safe_int(user_data.get("big_five_question_10"))
+                        - safe_int(user_data.get("big_five_question_15"))
+                        + safe_int(user_data.get("big_five_question_20"))
+                        - safe_int(user_data.get("big_five_question_25"))
+                        + safe_int(user_data.get("big_five_question_30"))
+                        - safe_int(user_data.get("big_five_question_35"))
+                        + safe_int(user_data.get("big_five_question_40"))
+                        - safe_int(user_data.get("big_five_question_45")),
 
-        "Agreeableness/Доброжелательность": 14
-            - int(user_data.get("big_five_question_1", "0") or 0)
-            + int(user_data.get("big_five_question_6", "0") or 0)
-            - int(user_data.get("big_five_question_11", "0") or 0)
-            + int(user_data.get("big_five_question_16", "0") or 0)
-            - int(user_data.get("big_five_question_21", "0") or 0)
-            + int(user_data.get("big_five_question_26", "0") or 0)
-            - int(user_data.get("big_five_question_31", "0") or 0)
-            + int(user_data.get("big_five_question_36", "0") or 0)
-            + int(user_data.get("big_five_question_41", "0") or 0)
-            + int(user_data.get("big_five_question_46", "0") or 0),
+        "Agreeableness": 14
+                         - safe_int(user_data.get("big_five_question_1"))
+                         + safe_int(user_data.get("big_five_question_6"))
+                         - safe_int(user_data.get("big_five_question_11"))
+                         + safe_int(user_data.get("big_five_question_16"))
+                         - safe_int(user_data.get("big_five_question_21"))
+                         + safe_int(user_data.get("big_five_question_26"))
+                         - safe_int(user_data.get("big_five_question_31"))
+                         + safe_int(user_data.get("big_five_question_36"))
+                         + safe_int(user_data.get("big_five_question_41"))
+                         + safe_int(user_data.get("big_five_question_46")),
 
-        "Conscientiousness/Добросовестность": 14
-            + int(user_data.get("big_five_question_2", "0") or 0)
-            - int(user_data.get("big_five_question_7", "0") or 0)
-            + int(user_data.get("big_five_question_12", "0") or 0)
-            - int(user_data.get("big_five_question_17", "0") or 0)
-            + int(user_data.get("big_five_question_22", "0") or 0)
-            - int(user_data.get("big_five_question_27", "0") or 0)
-            + int(user_data.get("big_five_question_32", "0") or 0)
-            - int(user_data.get("big_five_question_37", "0") or 0)
-            + int(user_data.get("big_five_question_42", "0") or 0)
-            + int(user_data.get("big_five_question_47", "0") or 0),
+        "Conscientiousness": 14
+                             + safe_int(user_data.get("big_five_question_2"))
+                             - safe_int(user_data.get("big_five_question_7"))
+                             + safe_int(user_data.get("big_five_question_12"))
+                             - safe_int(user_data.get("big_five_question_17"))
+                             + safe_int(user_data.get("big_five_question_22"))
+                             - safe_int(user_data.get("big_five_question_27"))
+                             + safe_int(user_data.get("big_five_question_32"))
+                             - safe_int(user_data.get("big_five_question_37"))
+                             + safe_int(user_data.get("big_five_question_42"))
+                             + safe_int(user_data.get("big_five_question_47")),
 
-        "Neuroticism/Нейротизм": 38
-            - int(user_data.get("big_five_question_3", "0") or 0)
-            + int(user_data.get("big_five_question_8", "0") or 0)
-            - int(user_data.get("big_five_question_13", "0") or 0)
-            + int(user_data.get("big_five_question_18", "0") or 0)
-            - int(user_data.get("big_five_question_23", "0") or 0)
-            - int(user_data.get("big_five_question_28", "0") or 0)
-            - int(user_data.get("big_five_question_33", "0") or 0)
-            - int(user_data.get("big_five_question_38", "0") or 0)
-            - int(user_data.get("big_five_question_43", "0") or 0)
-            - int(user_data.get("big_five_question_48", "0") or 0),
+        "Neuroticism": 38
+                       - safe_int(user_data.get("big_five_question_3"))
+                       + safe_int(user_data.get("big_five_question_8"))
+                       - safe_int(user_data.get("big_five_question_13"))
+                       + safe_int(user_data.get("big_five_question_18"))
+                       - safe_int(user_data.get("big_five_question_23"))
+                       - safe_int(user_data.get("big_five_question_28"))
+                       - safe_int(user_data.get("big_five_question_33"))
+                       - safe_int(user_data.get("big_five_question_38"))
+                       - safe_int(user_data.get("big_five_question_43"))
+                       - safe_int(user_data.get("big_five_question_48")),
 
-        "Openness/Открытость": 8
-            + int(user_data.get("big_five_question_4", "0") or 0)
-            - int(user_data.get("big_five_question_9", "0") or 0)
-            + int(user_data.get("big_five_question_14", "0") or 0)
-            - int(user_data.get("big_five_question_19", "0") or 0)
-            + int(user_data.get("big_five_question_24", "0") or 0)
-            - int(user_data.get("big_five_question_29", "0") or 0)
-            + int(user_data.get("big_five_question_34", "0") or 0)
-            + int(user_data.get("big_five_question_39", "0") or 0)
-            + int(user_data.get("big_five_question_44", "0") or 0)
-            + int(user_data.get("big_five_question_49", "0") or 0),
+        "Openness": 8
+                    + safe_int(user_data.get("big_five_question_4"))
+                    - safe_int(user_data.get("big_five_question_9"))
+                    + safe_int(user_data.get("big_five_question_14"))
+                    - safe_int(user_data.get("big_five_question_19"))
+                    + safe_int(user_data.get("big_five_question_24"))
+                    - safe_int(user_data.get("big_five_question_29"))
+                    + safe_int(user_data.get("big_five_question_34"))
+                    + safe_int(user_data.get("big_five_question_39"))
+                    + safe_int(user_data.get("big_five_question_44"))
+                    + safe_int(user_data.get("big_five_question_49")),
     }
+
     print(f"✅ Big Five Scores Calculated: {scores}")
     return scores
 
