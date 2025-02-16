@@ -400,60 +400,64 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 def calculate_big_five_scores(user_data):
     scores = {
         "Extraversion/Экстраверсия": 20
-            + int(user_data.get("big_five_question_0", 0))
-            - int(user_data.get("big_five_question_5", 0))
-            + int(user_data.get("big_five_question_10", 0))
-            - int(user_data.get("big_five_question_15", 0))
-            + int(user_data.get("big_five_question_20", 0))
-            - int(user_data.get("big_five_question_25", 0))
-            + int(user_data.get("big_five_question_30", 0))
-            - int(user_data.get("big_five_question_35", 0))
-            + int(user_data.get("big_five_question_40", 0))
-            - int(user_data.get("big_five_question_45", 0)),
+            + int(user_data.get("big_five_question_0", "0") or 0)
+            - int(user_data.get("big_five_question_5", "0") or 0)
+            + int(user_data.get("big_five_question_10", "0") or 0)
+            - int(user_data.get("big_five_question_15", "0") or 0)
+            + int(user_data.get("big_five_question_20", "0") or 0)
+            - int(user_data.get("big_five_question_25", "0") or 0)
+            + int(user_data.get("big_five_question_30", "0") or 0)
+            - int(user_data.get("big_five_question_35", "0") or 0)
+            + int(user_data.get("big_five_question_40", "0") or 0)
+            - int(user_data.get("big_five_question_45", "0") or 0),
+
         "Agreeableness/Доброжелательность": 14
-            - int(user_data.get("big_five_question_1", 0))
-            + int(user_data.get("big_five_question_6", 0))
-            - int(user_data.get("big_five_question_11", 0))
-            + int(user_data.get("big_five_question_16", 0))
-            - int(user_data.get("big_five_question_21", 0))
-            + int(user_data.get("big_five_question_26", 0))
-            - int(user_data.get("big_five_question_31", 0))
-            + int(user_data.get("big_five_question_36", 0))
-            + int(user_data.get("big_five_question_41", 0))
-            + int(user_data.get("big_five_question_46", 0)),
+            - int(user_data.get("big_five_question_1", "0") or 0)
+            + int(user_data.get("big_five_question_6", "0") or 0)
+            - int(user_data.get("big_five_question_11", "0") or 0)
+            + int(user_data.get("big_five_question_16", "0") or 0)
+            - int(user_data.get("big_five_question_21", "0") or 0)
+            + int(user_data.get("big_five_question_26", "0") or 0)
+            - int(user_data.get("big_five_question_31", "0") or 0)
+            + int(user_data.get("big_five_question_36", "0") or 0)
+            + int(user_data.get("big_five_question_41", "0") or 0)
+            + int(user_data.get("big_five_question_46", "0") or 0),
+
         "Conscientiousness/Добросовестность": 14
-            + int(user_data.get("big_five_question_2", 0))
-            - int(user_data.get("big_five_question_7", 0))
-            + int(user_data.get("big_five_question_12", 0))
-            - int(user_data.get("big_five_question_17", 0))
-            + int(user_data.get("big_five_question_22", 0))
-            - int(user_data.get("big_five_question_27", 0))
-            + int(user_data.get("big_five_question_32", 0))
-            - int(user_data.get("big_five_question_37", 0))
-            + int(user_data.get("big_five_question_42", 0))
-            + int(user_data.get("big_five_question_47", 0)),
+            + int(user_data.get("big_five_question_2", "0") or 0)
+            - int(user_data.get("big_five_question_7", "0") or 0)
+            + int(user_data.get("big_five_question_12", "0") or 0)
+            - int(user_data.get("big_five_question_17", "0") or 0)
+            + int(user_data.get("big_five_question_22", "0") or 0)
+            - int(user_data.get("big_five_question_27", "0") or 0)
+            + int(user_data.get("big_five_question_32", "0") or 0)
+            - int(user_data.get("big_five_question_37", "0") or 0)
+            + int(user_data.get("big_five_question_42", "0") or 0)
+            + int(user_data.get("big_five_question_47", "0") or 0),
+
         "Neuroticism/Нейротизм": 38
-            - int(user_data.get("big_five_question_3", 0))
-            + int(user_data.get("big_five_question_8", 0))
-            - int(user_data.get("big_five_question_13", 0))
-            + int(user_data.get("big_five_question_18", 0))
-            - int(user_data.get("big_five_question_23", 0))
-            - int(user_data.get("big_five_question_28", 0))
-            - int(user_data.get("big_five_question_33", 0))
-            - int(user_data.get("big_five_question_38", 0))
-            - int(user_data.get("big_five_question_43", 0))
-            - int(user_data.get("big_five_question_48", 0)),
+            - int(user_data.get("big_five_question_3", "0") or 0)
+            + int(user_data.get("big_five_question_8", "0") or 0)
+            - int(user_data.get("big_five_question_13", "0") or 0)
+            + int(user_data.get("big_five_question_18", "0") or 0)
+            - int(user_data.get("big_five_question_23", "0") or 0)
+            - int(user_data.get("big_five_question_28", "0") or 0)
+            - int(user_data.get("big_five_question_33", "0") or 0)
+            - int(user_data.get("big_five_question_38", "0") or 0)
+            - int(user_data.get("big_five_question_43", "0") or 0)
+            - int(user_data.get("big_five_question_48", "0") or 0),
+
         "Openness/Открытость": 8
-            + int(user_data.get("big_five_question_4", 0))
-            - int(user_data.get("big_five_question_9", 0))
-            + int(user_data.get("big_five_question_14", 0))
-            - int(user_data.get("big_five_question_19", 0))
-            + int(user_data.get("big_five_question_24", 0))
-            - int(user_data.get("big_five_question_29", 0))
-            + int(user_data.get("big_five_question_34", 0))
-            + int(user_data.get("big_five_question_39", 0))
-            + int(user_data.get("big_five_question_44", 0))
-            + int(user_data.get("big_five_question_49", 0)),
+            + int(user_data.get("big_five_question_4", "0") or 0)
+            - int(user_data.get("big_five_question_9", "0") or 0)
+            + int(user_data.get("big_five_question_14", "0") or 0)
+            - int(user_data.get("big_five_question_19", "0") or 0)
+            + int(user_data.get("big_five_question_24", "0") or 0)
+            - int(user_data.get("big_five_question_29", "0") or 0)
+            + int(user_data.get("big_five_question_34", "0") or 0)
+            + int(user_data.get("big_five_question_39", "0") or 0)
+            + int(user_data.get("big_five_question_44", "0") or 0)
+            + int(user_data.get("big_five_question_49", "0") or 0),
     }
 
     return scores
