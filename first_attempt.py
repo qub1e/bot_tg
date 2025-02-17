@@ -364,9 +364,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         _, question_index, score = query.data.split("_")  # Извлекаем данные
         user_data[f"big_five_question_{question_index}"] = int(score)  # Сохраняем ответ
         print(f"✅ Big Five Response Recorded: Question {question_index} → Score {score}")
-        response_message = (
-            f"Thank you for your response: {score}" if lang == "en" else f"Спасибо за ваш ответ: {score}"
-        )
+
 
         await query.edit_message_text(response_message)
         await big_five_test(update, context)  # Переход к следующему вопросу
