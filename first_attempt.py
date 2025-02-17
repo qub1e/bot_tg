@@ -261,10 +261,10 @@ async def send_message(update: Update, text: str, reply_markup=None) -> None:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     welcome_message = (
         "\U0001F3B5 Welcome!\n\n"
-        "This bot is designed to study the connection between personality and musical preferences. Survey completion time: ~5-7 minutes.\n\n"
+        "This bot is designed to study the connection between personality and musical preferences. Survey completion time: ~15 minutes.\n\n"
         "Please choose a languane.\n\n"
         "\U0001F3B5 Добро пожаловать!\n\n"
-        "Этот бот создан для исследования связи между личностью и музыкальными предпочтениями. Время прохождения: ~5-7 минут.\n\n"
+        "Этот бот создан для исследования связи между личностью и музыкальными предпочтениями. Время прохождения: ~15 минут.\n\n"
         "Пожалуйста выберите язык."
     )
 
