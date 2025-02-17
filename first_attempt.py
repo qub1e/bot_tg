@@ -364,12 +364,12 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         _, question_index, score = query.data.split("_")  # Извлекаем данные
         user_data[f"big_five_question_{question_index}"] = int(score)  # Сохраняем ответ
         print(f"✅ Big Five Response Recorded: Question {question_index} → Score {score}")
-        response_message = (
-            f"Thank you for your response: {score}" if lang == "en" else f"Спасибо за ваш ответ: {score}"
-        )
 
-        await query.edit_message_text(response_message)
-        await big_five_test(update, context)  # Переход к следующему вопросу
+        # Удаляем сообщение с вопросом
+        await query.message.delete()
+
+        # Переход к следующему вопросу
+        await big_five_test(update, context)
         return
 
     # Обработка ответов общего опроса
@@ -378,15 +378,13 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         selected_option = user_data["current_options"].get(option_index, "Unknown")
         user_data[f"question_{user_data['current_question'] - 1}"] = selected_option  # Сохраняем ответ
 
-        response_message = (
-            f"Thank you for your response: {selected_option}"
-            if lang == "en"
-            else f"Спасибо за ваш ответ: {selected_option}"
-        )
+        print(f"✅ General Survey Response Recorded: {selected_option}")
 
-        await query.answer()
-        await query.edit_message_text(response_message)
-        await next_question(update, context)  # Переход к следующему вопросу
+        # Удаляем сообщение с вопросом
+        await query.message.delete()
+
+        # Переход к следующему вопросу
+        await next_question(update, context)
         return
 
     # Обработка неожиданных данных
